@@ -1,4 +1,4 @@
-from main import weather_penalty
+from utils.weather_analize import weather_penalty
 from utils import moon_fishing_bonus
 
 
