@@ -13,7 +13,6 @@ from aiogram.types import Message
 
 from constants.ru_days import RU_DAYS
 from keyboards.main_keyboard import get_main_keyboard
-
 from utils import check_spam
 from dbase.data_dase import user_city
 from utils import fetch_forecast,get_fishing_forecast
@@ -24,8 +23,27 @@ from datetime import datetime
 router = Router()
 
 
-def weather_icon(param):
-    pass
+def weather_icon(weather_id):
+
+    if weather_id == 800:
+        return "☀️"
+
+    elif 801 <= weather_id <= 804:
+        return "☁️"
+
+    elif 500 <= weather_id <= 531:
+        return "🌧"
+
+    elif 200 <= weather_id <= 232:
+        return "⛈"
+
+    elif 600 <= weather_id <= 622:
+        return "❄️"
+
+    elif 700 <= weather_id <= 781:
+        return "🌫"
+
+    return "🌍"
 
 
 @router.callback_query(F.data.in_(["today", "week"]))

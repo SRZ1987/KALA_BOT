@@ -1,3 +1,4 @@
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -8,10 +9,9 @@ from utils.anti_spam import check_spam
 from constants.est_cit import CITIES
 from dbase.data_dase import user_city, all_users
 from aiogram import Router, F
-from aiogram.filters import Command
-from aiogram.types import Message
 from keyboards.main_keyboard import get_main_keyboard
 from config import ADMIN_ID
+
 router = Router()
 
 @router.callback_query(F.data.startswith("city_"))
