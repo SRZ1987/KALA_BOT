@@ -4,7 +4,7 @@ from aiogram.types import Message
 router = Router()
 from aiogram.filters import Command
 from keyboards.main_menu_kb import main_menu_kb
-from dbase.data_dase import all_users
+from dbase.users_db import add_user
 
 
 
@@ -21,7 +21,9 @@ async def cmd_start(message: Message):
         "Также, здесь вы найдёте полезные ссылки, которые помогут вам немного сохранить времени",
         reply_markup=main_menu_kb()
     )
-    print("FILE USERS OBJECT:", id(all_users))
-    all_users.add(message.from_user.id)
-    print("AFTER ADD:", all_users)
-    print("OBJECT ID:", id(all_users))
+
+    add_user(
+        message.from_user.id,
+        message.from_user.first_name
+    )
+
