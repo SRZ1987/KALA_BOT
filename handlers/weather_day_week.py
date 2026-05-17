@@ -13,7 +13,7 @@ from aiogram.types import Message
 
 from constants.ru_days import RU_DAYS
 from keyboards.main_keyboard import get_main_keyboard
-from main import weather_icon
+
 from utils import check_spam
 from dbase.data_dase import user_city
 from utils import fetch_forecast,get_fishing_forecast
@@ -23,6 +23,9 @@ from datetime import datetime
 
 router = Router()
 
+
+def weather_icon(param):
+    pass
 
 
 @router.callback_query(F.data.in_(["today", "week"]))
