@@ -30,7 +30,7 @@ async def select_city(callback: CallbackQuery):
 
     user_city[callback.from_user.id] = city_eng
 
-    all_users.add(callback.from_user.id)
+
 
     try:
 
