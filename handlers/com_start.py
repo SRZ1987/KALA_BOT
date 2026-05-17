@@ -1,17 +1,20 @@
-
 from aiogram import Router, F
 from aiogram.types import Message
-router = Router()
 from aiogram.filters import Command
+
 from keyboards.main_menu_kb import main_menu_kb
 from dbase.users_db import add_user
 
+router = Router()
 
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
 
-    all_users.add(message.from_user.id)
+    add_user(
+        message.from_user.id,
+        message.from_user.first_name
+    )
 
     await message.answer(
         "🎣 Привет!\n\n"
@@ -21,9 +24,3 @@ async def cmd_start(message: Message):
         "Также, здесь вы найдёте полезные ссылки, которые помогут вам немного сохранить времени",
         reply_markup=main_menu_kb()
     )
-
-    add_user(
-        message.from_user.id,
-        message.from_user.first_name
-    )
-
