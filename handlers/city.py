@@ -7,7 +7,8 @@ from aiogram.types import (
 )
 from utils.anti_spam import check_spam
 from constants.est_cit import CITIES
-from dbase.data_dase import user_city, all_users
+from dbase.data_dase import user_city
+from dbase.users_db import  all_users
 from aiogram import Router, F
 from keyboards.main_keyboard import get_main_keyboard
 from config import ADMIN_ID

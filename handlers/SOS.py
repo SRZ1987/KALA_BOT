@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from utils.fsm import SOSState
 from keyboards.SOS_kb import contact_geo_kb
 from keyboards.back_kb import back_kb
-from dbase.data_dase import all_users
+from dbase.users_db import all_users
 
 import asyncio
 
