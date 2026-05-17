@@ -1,7 +1,7 @@
 import json
 import os
 
-DB_FILE = "/app/data/users.json"
+DB_FILE = "data/users.json"
 
 
 def load_users():
