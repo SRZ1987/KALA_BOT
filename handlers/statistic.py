@@ -10,7 +10,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from config import ADMIN_ID
-from dbase.data_dase import all_users
+from dbase.users_db import all_users
 from keyboards.main_keyboard import get_main_keyboard
 from aiogram import Router,F
 
