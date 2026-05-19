@@ -4,6 +4,7 @@ from constants.est_cit import CITIES
 
 
 CITY_ITEMS = list(CITIES.items())
+ANY_CITY = ("Любой город", "any")
 
 
 def rides_menu_kb():
@@ -18,8 +19,14 @@ def rides_menu_kb():
     return kb.as_markup()
 
 
-def rides_city_kb(prefix):
+def rides_city_kb(prefix, include_any=False):
     kb = InlineKeyboardBuilder()
+
+    if include_any:
+        kb.button(
+            text=ANY_CITY[0],
+            callback_data=f"{prefix}:any"
+        )
 
     for index, (city_name, city_key) in enumerate(CITY_ITEMS):
         kb.button(
@@ -30,17 +37,6 @@ def rides_city_kb(prefix):
     kb.button(text="Назад", callback_data="rides")
     kb.adjust(2)
 
-    return kb.as_markup()
-
-
-def rides_type_kb():
-    kb = InlineKeyboardBuilder()
-
-    kb.button(text="Ищу попутчика", callback_data="rides_type:need")
-    kb.button(text="Есть место в машине", callback_data="rides_type:offer")
-    kb.button(text="Назад", callback_data="rides_add")
-
-    kb.adjust(1)
     return kb.as_markup()
 
 

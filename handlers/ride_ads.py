@@ -12,12 +12,12 @@ from dbase.rides_db import (
     get_user_ads,
 )
 from keyboards.rides_kb import (
+    ANY_CITY,
     CITY_ITEMS,
     rides_back_kb,
     rides_city_kb,
     rides_menu_kb,
     rides_my_ads_kb,
-    rides_type_kb,
 )
 from utils.fsm import RideAdState
 
@@ -26,8 +26,15 @@ router = Router()
 
 AD_TYPES = {
     "need": "Ищу попутчика",
-    "offer": "Есть место в машине",
+    "offer": "Ищу попутчика",
 }
+
+
+def _get_city(value):
+    if value == "any":
+        return ANY_CITY
+
+    return CITY_ITEMS[int(value)]
 
 
 def _format_date(value):
@@ -92,7 +99,7 @@ async def rides_menu(callback: CallbackQuery, state: FSMContext):
 async def rides_view(callback: CallbackQuery):
     await callback.message.edit_text(
         "Выбери город, по которому показать объявления:",
-        reply_markup=rides_city_kb("rides_view_city")
+        reply_markup=rides_city_kb("rides_view_city", include_any=True)
     )
 
     await callback.answer()
@@ -100,8 +107,8 @@ async def rides_view(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("rides_view_city:"))
 async def rides_view_city(callback: CallbackQuery):
-    city_index = int(callback.data.split(":")[1])
-    city_name, city_key = CITY_ITEMS[city_index]
+    city_value = callback.data.split(":")[1]
+    city_name, city_key = _get_city(city_value)
     ads = get_ads_by_city(city_key)
 
     text = _format_ads(
@@ -122,8 +129,8 @@ async def rides_add(callback: CallbackQuery, state: FSMContext):
     await state.set_state(RideAdState.city)
 
     await callback.message.edit_text(
-        "Выбери город для объявления:",
-        reply_markup=rides_city_kb("rides_add_city")
+        "Выберите, в окрестности какого города вы хотели бы поехать:",
+        reply_markup=rides_city_kb("rides_add_city", include_any=True)
     )
 
     await callback.answer()
@@ -131,38 +138,20 @@ async def rides_add(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("rides_add_city:"))
 async def rides_add_city(callback: CallbackQuery, state: FSMContext):
-    city_index = int(callback.data.split(":")[1])
-    city_name, city_key = CITY_ITEMS[city_index]
+    city_value = callback.data.split(":")[1]
+    city_name, city_key = _get_city(city_value)
 
     await state.update_data(
         city_name=city_name,
-        city_key=city_key
+        city_key=city_key,
+        ad_type="need"
     )
-    await state.set_state(RideAdState.ad_type)
-
-    await callback.message.edit_text(
-        "Что добавить?",
-        reply_markup=rides_type_kb()
-    )
-
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("rides_type:"))
-async def rides_type(callback: CallbackQuery, state: FSMContext):
-    ad_type = callback.data.split(":")[1]
-
-    if ad_type not in AD_TYPES:
-        await callback.answer("Неизвестный тип объявления", show_alert=True)
-        return
-
-    await state.update_data(ad_type=ad_type)
     await state.set_state(RideAdState.text)
 
     await callback.message.edit_text(
         "Напиши текст объявления одним сообщением.\n\n"
-        "Например: есть место в машине, еду завтра в 10:00 из Таллинна "
-        "в Тарту, 2 места, связь через Telegram."
+        "Например: ищу попутчика, еду завтра в 10:00 из Таллинна "
+        "в Тарту, связь через Telegram."
     )
 
     await callback.answer()
