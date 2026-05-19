@@ -8,14 +8,11 @@ from aiogram.types import CallbackQuery, Message
 from dbase.rides_db import (
     add_ride_ad,
     delete_user_ad,
-    get_ads_by_city,
+    get_all_ads,
     get_user_ads,
 )
 from keyboards.rides_kb import (
-    ANY_CITY,
-    CITY_ITEMS,
     rides_back_kb,
-    rides_city_kb,
     rides_menu_kb,
     rides_my_ads_kb,
 )
@@ -28,13 +25,6 @@ AD_TYPES = {
     "need": "Ищу попутчика",
     "offer": "Ищу попутчика",
 }
-
-
-def _get_city(value):
-    if value == "any":
-        return ANY_CITY
-
-    return CITY_ITEMS[int(value)]
 
 
 def _format_date(value):
@@ -69,7 +59,6 @@ def _format_ads(ads, empty_text):
             "\n".join(
                 [
                     f"<b>{number}. {escape(ad_type)}</b>",
-                    f"Город: <b>{escape(ad.get('city_name', ''))}</b>",
                     f"Автор: {_format_contact(ad)}",
                     f"До: {_format_date(ad.get('expires_at'))}",
                     "",
@@ -97,23 +86,10 @@ async def rides_menu(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "rides_view")
 async def rides_view(callback: CallbackQuery):
-    await callback.message.edit_text(
-        "Выбери город, по которому показать объявления:",
-        reply_markup=rides_city_kb("rides_view_city", include_any=True)
-    )
-
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("rides_view_city:"))
-async def rides_view_city(callback: CallbackQuery):
-    city_value = callback.data.split(":")[1]
-    city_name, city_key = _get_city(city_value)
-    ads = get_ads_by_city(city_key)
-
+    ads = get_all_ads()
     text = _format_ads(
         ads,
-        f"По городу <b>{escape(city_name)}</b> пока нет объявлений."
+        "Активных объявлений пока нет."
     )
 
     await callback.message.edit_text(
@@ -126,26 +102,7 @@ async def rides_view_city(callback: CallbackQuery):
 
 @router.callback_query(F.data == "rides_add")
 async def rides_add(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(RideAdState.city)
-
-    await callback.message.edit_text(
-        "Выберите, в окрестности какого города вы хотели бы поехать:",
-        reply_markup=rides_city_kb("rides_add_city", include_any=True)
-    )
-
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("rides_add_city:"))
-async def rides_add_city(callback: CallbackQuery, state: FSMContext):
-    city_value = callback.data.split(":")[1]
-    city_name, city_key = _get_city(city_value)
-
-    await state.update_data(
-        city_name=city_name,
-        city_key=city_key,
-        ad_type="need"
-    )
+    await state.update_data(ad_type="need")
     await state.set_state(RideAdState.text)
 
     await callback.message.edit_text(
@@ -177,8 +134,6 @@ async def rides_save(message: Message, state: FSMContext):
     data = await state.get_data()
     ad = add_ride_ad(
         user=message.from_user,
-        city_key=data["city_key"],
-        city_name=data["city_name"],
         ad_type=data["ad_type"],
         text=text
     )

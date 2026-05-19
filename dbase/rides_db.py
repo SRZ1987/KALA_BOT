@@ -66,15 +66,13 @@ def cleanup_expired_ads():
     return active_ads
 
 
-def add_ride_ad(user, city_key, city_name, ad_type, text):
+def add_ride_ad(user, ad_type, text):
     now = _now()
     ad = {
         "id": uuid.uuid4().hex[:10],
         "user_id": user.id,
         "username": user.username,
         "full_name": user.full_name,
-        "city_key": city_key,
-        "city_name": city_name,
         "ad_type": ad_type,
         "text": text,
         "created_at": now.isoformat(),
@@ -88,13 +86,8 @@ def add_ride_ad(user, city_key, city_name, ad_type, text):
     return ad
 
 
-def get_ads_by_city(city_key):
-    ads = cleanup_expired_ads()
-
-    return [
-        ad for ad in ads
-        if ad.get("city_key") == city_key
-    ]
+def get_all_ads():
+    return cleanup_expired_ads()
 
 
 def get_user_ads(user_id):
