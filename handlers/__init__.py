@@ -8,6 +8,7 @@ from .back import router as back_to_main_menu
 from .links import router as links
 from .connection import router as connection
 from .SOS import router as sos
+from .ride_ads import router as ride_ads
 routers = [
     start_router,
     city_router,
@@ -19,6 +20,7 @@ routers = [
     links,
     connection,
     sos,
+    ride_ads,
 
 
 

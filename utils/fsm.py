@@ -10,3 +10,9 @@ class SOSState(StatesGroup):
     problem = State()
     location = State()
     phone = State()
+
+
+class RideAdState(StatesGroup):
+    city = State()
+    ad_type = State()
+    text = State()
