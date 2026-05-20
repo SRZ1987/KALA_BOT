@@ -1,5 +1,6 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+
 def rides_menu_kb():
     kb = InlineKeyboardBuilder()
 
@@ -30,6 +31,21 @@ def rides_my_ads_kb(ads):
         )
 
     kb.button(text="Назад", callback_data="rides")
+    kb.adjust(1)
+
+    return kb.as_markup()
+
+
+def rides_admin_ads_kb(ads):
+    kb = InlineKeyboardBuilder()
+
+    for ad in ads:
+        kb.button(
+            text=f"Удалить #{ad['id']}",
+            callback_data=f"admin_ride_delete:{ad['id']}"
+        )
+
+    kb.button(text="Назад к попутчикам", callback_data="rides")
     kb.adjust(1)
 
     return kb.as_markup()

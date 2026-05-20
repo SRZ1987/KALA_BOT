@@ -5,6 +5,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from config import ADMIN_ID
 from dbase.rides_db import (
     add_ride_ad,
     delete_user_ad,
@@ -12,6 +13,7 @@ from dbase.rides_db import (
     get_user_ads,
 )
 from keyboards.rides_kb import (
+    rides_admin_ads_kb,
     rides_back_kb,
     rides_menu_kb,
     rides_my_ads_kb,
@@ -25,6 +27,10 @@ AD_TYPES = {
     "need": "Ищу попутчика",
     "offer": "Ищу попутчика",
 }
+
+
+def _is_admin(user_id):
+    return user_id == ADMIN_ID
 
 
 def _format_date(value):
@@ -58,8 +64,9 @@ def _format_ads(ads, empty_text):
         lines.append(
             "\n".join(
                 [
-                    f"<b>{number}. {escape(ad_type)}</b>",
+                    f"<b>{number}. {escape(ad_type)} #{ad['id']}</b>",
                     f"Автор: {_format_contact(ad)}",
+                    f"ID: <code>{ad.get('user_id')}</code>",
                     f"До: {_format_date(ad.get('expires_at'))}",
                     "",
                     escape(ad.get("text", "")),
@@ -76,7 +83,7 @@ async def rides_menu(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.edit_text(
         "Попутчики\n\n"
-        "Здесь можно найти место в машине или оставить объявление. "
+        "Здесь можно найти попутчика или оставить объявление. "
         "Объявления удаляются автоматически через 7 дней.",
         reply_markup=rides_menu_kb()
     )
@@ -94,7 +101,11 @@ async def rides_view(callback: CallbackQuery):
 
     await callback.message.edit_text(
         text,
-        reply_markup=rides_back_kb()
+        reply_markup=(
+            rides_admin_ads_kb(ads)
+            if _is_admin(callback.from_user.id)
+            else rides_back_kb()
+        )
     )
 
     await callback.answer()
@@ -185,4 +196,25 @@ async def rides_delete(callback: CallbackQuery):
         reply_markup=rides_my_ads_kb(ads)
     )
 
+    await callback.answer("Удалено")
+
+
+@router.callback_query(F.data.startswith("admin_ride_delete:"))
+async def admin_ride_delete(callback: CallbackQuery):
+    if not _is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    ad_id = callback.data.split(":")[1]
+    delete_user_ad(ad_id)
+    ads = get_all_ads()
+    text = _format_ads(
+        ads,
+        "Активных объявлений пока нет."
+    )
+
+    await callback.message.edit_text(
+        text,
+        reply_markup=rides_admin_ads_kb(ads)
+    )
     await callback.answer("Удалено")

@@ -6,6 +6,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from handlers import routers
 from config import API_TOKEN
 from utils.logger import logger
+from utils.ban_middleware import BanMiddleware
 
 
 
@@ -20,6 +21,8 @@ bot = Bot(
 
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
+dp.message.outer_middleware(BanMiddleware())
+dp.callback_query.outer_middleware(BanMiddleware())
 dp.include_routers(*routers)
 
 async def main():

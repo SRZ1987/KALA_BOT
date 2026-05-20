@@ -1,26 +1,24 @@
-from aiogram import F, Router
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
-from aiogram.fsm.context import FSMContext
-
-from utils.fsm import SOSState
-from keyboards.SOS_kb import contact_geo_kb
-from keyboards.back_kb import back_kb
-from dbase.users_db import all_users
-
 import asyncio
 
-router = Router()
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
-print("USERS:", all_users)
+from dbase.sos_db import add_sos_report
+from dbase.users_db import all_users
+from keyboards.SOS_kb import contact_geo_kb
+from keyboards.back_kb import back_kb
+from utils.fsm import SOSState
+
+
+router = Router()
 
 
 async def broadcast_sos(bot, text: str, users: list[int], lat=None, lon=None):
     for user_id in users:
         try:
-            # 🆘 текст SOS
             await bot.send_message(user_id, text)
 
-            # 📍 КАРТА (ВАЖНО — это то, что тебе нужно)
             if lat is not None and lon is not None:
                 await bot.send_location(
                     chat_id=user_id,
@@ -30,14 +28,13 @@ async def broadcast_sos(bot, text: str, users: list[int], lat=None, lon=None):
 
             await asyncio.sleep(0.05)
 
-            # 🏠 кнопка назад
             await bot.send_message(
                 user_id,
                 "Вернуться в главное меню",
                 reply_markup=back_kb()
             )
 
-        except:
+        except Exception:
             continue
 
 
@@ -45,6 +42,7 @@ async def broadcast_sos(bot, text: str, users: list[int], lat=None, lon=None):
 async def sos_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(SOSState.problem)
     await callback.message.answer("Опиши проблему:")
+    await callback.answer()
 
 
 @router.message(SOSState.problem)
@@ -53,14 +51,13 @@ async def get_problem(message: Message, state: FSMContext):
     await state.set_state(SOSState.location)
 
     await message.answer(
-        "Отправь геолокацию 📍",
+        "Отправь геолокацию",
         reply_markup=contact_geo_kb()
     )
 
 
 @router.message(SOSState.location)
 async def get_location(message: Message, state: FSMContext):
-
     if message.location:
         lat = message.location.latitude
         lon = message.location.longitude
@@ -71,7 +68,7 @@ async def get_location(message: Message, state: FSMContext):
     await state.update_data(lat=lat, lon=lon)
     await state.set_state(SOSState.phone)
 
-    await message.answer("Теперь отправь номер телефона 📱")
+    await message.answer("Теперь отправь номер телефона")
 
 
 @router.message(SOSState.phone)
@@ -83,8 +80,16 @@ async def get_phone(message: Message, state: FSMContext):
     else:
         phone = message.text or "не указан"
 
+    report = add_sos_report(
+        message.from_user,
+        data.get("problem"),
+        phone,
+        lat=data.get("lat"),
+        lon=data.get("lon")
+    )
+
     text = (
-        "🆘 SOS\n\n"
+        f"SOS #{report['id']}\n\n"
         f"Проблема: {data.get('problem')}\n"
         f"Телефон: {phone}"
     )
@@ -96,7 +101,6 @@ async def get_phone(message: Message, state: FSMContext):
         reply_markup=ReplyKeyboardRemove()
     )
 
-    # 🚀 ВАЖНО: передаём координаты отдельно
     await broadcast_sos(
         message.bot,
         text,
@@ -104,5 +108,3 @@ async def get_phone(message: Message, state: FSMContext):
         lat=data.get("lat"),
         lon=data.get("lon")
     )
-
-    print("USERS:", all_users)

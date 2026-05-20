@@ -99,17 +99,20 @@ def get_user_ads(user_id):
     ]
 
 
-def delete_user_ad(ad_id, user_id):
+def delete_user_ad(ad_id, user_id=None):
     ads = cleanup_expired_ads()
-    new_ads = [
-        ad for ad in ads
-        if not (
-            ad.get("id") == ad_id
-            and ad.get("user_id") == user_id
-        )
-    ]
+    new_ads = []
+    deleted = False
 
-    deleted = len(new_ads) != len(ads)
+    for ad in ads:
+        is_target = ad.get("id") == ad_id
+        is_owner = user_id is None or ad.get("user_id") == int(user_id)
+
+        if is_target and is_owner:
+            deleted = True
+            continue
+
+        new_ads.append(ad)
 
     if deleted:
         _save_ads(new_ads)
