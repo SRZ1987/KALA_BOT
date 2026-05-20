@@ -12,11 +12,13 @@ from dbase.admin_db import (
     delete_seller,
     get_banned_users,
     get_sellers,
+    unban_user,
 )
 from dbase.sos_db import delete_sos_report, get_sos_reports
 from dbase.users_db import all_users
 from keyboards.admin_kb import (
     admin_back_kb,
+    admin_bans_kb,
     admin_menu_kb,
     admin_sellers_kb,
     admin_sos_kb,
@@ -42,6 +44,12 @@ def _format_date(value):
         return "неизвестно"
 
 
+def _get_known_username(user_id):
+    user = all_users.get(str(user_id), {})
+
+    return user.get("username")
+
+
 def _format_sellers():
     sellers = get_sellers()
 
@@ -51,12 +59,37 @@ def _format_sellers():
     lines = ["Продавцы:"]
 
     for seller_id, data in sellers.items():
+        username = _get_known_username(seller_id) or data.get("username") or "имя неизвестно"
         lines.append(
-            f"ID: <code>{seller_id}</code> | добавлен: "
-            f"{_format_date(data.get('added_at'))}"
+            f"User ID / Telegram ID: <code>{seller_id}</code>\n"
+            f"Имя: {escape(str(username))}\n"
+            f"Добавлен: {_format_date(data.get('added_at'))}"
         )
 
-    return "\n".join(lines)
+    return "\n\n".join(lines)
+
+
+def _format_banned_users():
+    banned_users = get_banned_users()
+
+    if not banned_users:
+        return "Бан-лист пуст."
+
+    lines = ["Бан-лист:"]
+
+    for banned_id, data in banned_users.items():
+        username = (
+            _get_known_username(banned_id)
+            or data.get("username")
+            or "имя неизвестно"
+        )
+        lines.append(
+            f"User ID / Telegram ID: <code>{banned_id}</code>\n"
+            f"Имя: {escape(str(username))}\n"
+            f"Забанен: {_format_date(data.get('banned_at'))}"
+        )
+
+    return "\n\n".join(lines)
 
 
 def _format_sos_reports(reports):
@@ -75,7 +108,7 @@ def _format_sos_reports(reports):
                 [
                     f"<b>{number}. SOS #{report['id']}</b>",
                     f"Автор: {contact}",
-                    f"ID: <code>{report.get('user_id')}</code>",
+                    f"User ID / Telegram ID: <code>{report.get('user_id')}</code>",
                     f"Телефон: {escape(str(report.get('phone', '')))}",
                     f"Дата: {_format_date(report.get('created_at'))}",
                     "",
@@ -120,19 +153,6 @@ async def stats(callback: CallbackQuery):
 
 @router.callback_query(F.data == "admin_sellers")
 async def admin_sellers(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer("Нет доступа", show_alert=True)
-        return
-
-    await callback.message.edit_text(
-        _format_sellers(),
-        reply_markup=admin_sellers_kb()
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data == "admin_sellers_list")
-async def admin_sellers_list(callback: CallbackQuery):
     if not is_admin(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
         return
@@ -217,6 +237,19 @@ async def admin_seller_delete_save(message: Message, state: FSMContext):
     )
 
 
+@router.callback_query(F.data == "admin_bans")
+async def admin_bans(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    await callback.message.edit_text(
+        _format_banned_users(),
+        reply_markup=admin_bans_kb()
+    )
+    await callback.answer()
+
+
 @router.callback_query(F.data == "admin_ban_user")
 async def admin_ban_user(callback: CallbackQuery, state: FSMContext):
     if not is_admin(callback.from_user.id):
@@ -237,7 +270,11 @@ async def admin_ban_user_save(message: Message, state: FSMContext):
         return
 
     try:
-        banned_id = ban_user(_parse_user_id(message.text))
+        user_id = _parse_user_id(message.text)
+        banned_id = ban_user(
+            user_id,
+            username=_get_known_username(user_id)
+        )
     except ValueError:
         await message.answer("Нужен числовой user id.")
         return
@@ -245,7 +282,48 @@ async def admin_ban_user_save(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(
         f"Пользователь <code>{banned_id}</code> забанен.",
-        reply_markup=admin_menu_kb()
+        reply_markup=admin_bans_kb()
+    )
+
+
+@router.callback_query(F.data == "admin_unban_user")
+async def admin_unban_user(callback: CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    await state.set_state(AdminState.unban_user)
+    await callback.message.edit_text(
+        "Напиши user id пользователя, которого нужно удалить из бана.",
+        reply_markup=admin_back_kb()
+    )
+    await callback.answer()
+
+
+@router.message(AdminState.unban_user)
+async def admin_unban_user_save(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+
+    try:
+        user_id = _parse_user_id(message.text)
+    except ValueError:
+        await message.answer("Нужен числовой user id.")
+        return
+
+    deleted = unban_user(user_id)
+    await state.clear()
+
+    if deleted:
+        await message.answer(
+            f"Пользователь <code>{user_id}</code> удален из бана.",
+            reply_markup=admin_bans_kb()
+        )
+        return
+
+    await message.answer(
+        f"Пользователь <code>{user_id}</code> не найден в бан-листе.",
+        reply_markup=admin_bans_kb()
     )
 
 

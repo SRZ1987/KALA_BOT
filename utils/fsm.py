@@ -22,6 +22,7 @@ class AdminState(StatesGroup):
     add_seller = State()
     delete_seller = State()
     ban_user = State()
+    unban_user = State()
 
 
 class SellerAdState(StatesGroup):

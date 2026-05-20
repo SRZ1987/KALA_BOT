@@ -1,22 +1,15 @@
-from aiogram import Bot
+from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import (
-    Message,
-    CallbackQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-)
-from aiogram import Router, F
-from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
 from config import ADMIN_ID
+from keyboards.back_kb import back_kb
+from utils.fsm import FeedbackState
 from utils.logger import logger
 
-router = Router()
 
-from utils.fsm import FeedbackState
-from keyboards.back_kb import back_kb
+router = Router()
 
 
 @router.callback_query(F.data == "feedback")
@@ -24,16 +17,14 @@ async def feedback_start(
         callback: CallbackQuery,
         state: FSMContext
 ):
-
     await state.set_state(
         FeedbackState.waiting_feedback
     )
 
     try:
-
         await callback.message.edit_text(
-            "💬 Напиши отзыв.\n"
-            "Можно текст, фото или голосовое."
+            "Напиши сообщение администратору.\n"
+            "Можно отправить текст, фото или голосовое."
         )
 
     except TelegramBadRequest:
@@ -42,29 +33,28 @@ async def feedback_start(
     await callback.answer()
 
 
-# =========================================================
-# 💬 ПОЛУЧЕНИЕ ОТЗЫВА
-# =========================================================
-
 @router.message(FeedbackState.waiting_feedback)
 async def feedback_receive(
         message: Message,
         state: FSMContext,
         bot: Bot
 ):
-
     user = message.from_user
 
     info = (
-        f"📩 Новый отзыв\n\n"
-        f"👤 {user.full_name}\n"
-        f"🆔 <code>{user.id}</code>\n"
+        "Новое сообщение администратору\n\n"
+        f"Имя: {user.full_name}\n"
+        f"User ID / Telegram ID: <code>{user.id}</code>\n"
     )
 
     if user.username:
-        info += f"📎 @{user.username}\n"
+        info += f"Username: @{user.username}\n"
 
     try:
+        await bot.send_message(
+            ADMIN_ID,
+            info
+        )
 
         await bot.forward_message(
             ADMIN_ID,
@@ -72,22 +62,16 @@ async def feedback_receive(
             message.message_id
         )
 
-        await bot.send_message(
-            ADMIN_ID,
-            info
-        )
-
         await message.answer(
-            "✅ Спасибо за отзыв!",
+            "Спасибо, сообщение отправлено администратору.",
             reply_markup=back_kb()
         )
 
     except Exception as e:
-
         logger.exception(e)
 
         await message.answer(
-            "❌ Ошибка отправки.",
+            "Ошибка отправки сообщения.",
             reply_markup=back_kb()
         )
 

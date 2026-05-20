@@ -87,13 +87,26 @@ def is_banned(user_id):
     return _normalize_user_id(user_id) in get_banned_users()
 
 
-def ban_user(user_id):
+def ban_user(user_id, username=None):
     banned_id = _normalize_user_id(user_id)
     banned_users = get_banned_users()
     banned_users[banned_id] = {
         "user_id": int(banned_id),
+        "username": username,
         "banned_at": _now()
     }
     _save_dict(BANNED_USERS_FILE, banned_users)
 
     return banned_id
+
+
+def unban_user(user_id):
+    banned_id = _normalize_user_id(user_id)
+    banned_users = get_banned_users()
+    deleted = banned_id in banned_users
+
+    if deleted:
+        del banned_users[banned_id]
+        _save_dict(BANNED_USERS_FILE, banned_users)
+
+    return deleted

@@ -6,7 +6,7 @@ def admin_menu_kb():
 
     kb.button(text="Статистика", callback_data="stats")
     kb.button(text="Продавцы", callback_data="admin_sellers")
-    kb.button(text="Забанить пользователя", callback_data="admin_ban_user")
+    kb.button(text="Бан-лист", callback_data="admin_bans")
     kb.button(text="SOS сообщения", callback_data="admin_sos")
     kb.button(text="Назад в меню", callback_data="back_to_main_menu")
 
@@ -19,6 +19,17 @@ def admin_sellers_kb():
 
     kb.button(text="Добавить продавца", callback_data="admin_seller_add")
     kb.button(text="Удалить продавца", callback_data="admin_seller_delete")
+    kb.button(text="Назад в админку", callback_data="admin_panel")
+
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def admin_bans_kb():
+    kb = InlineKeyboardBuilder()
+
+    kb.button(text="Добавить в бан", callback_data="admin_ban_user")
+    kb.button(text="Удалить из бана", callback_data="admin_unban_user")
     kb.button(text="Назад в админку", callback_data="admin_panel")
 
     kb.adjust(1)
