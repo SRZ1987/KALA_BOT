@@ -2,6 +2,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 def admin_menu_kb():
+    # Admin controls are grouped here so Railway gets a fresh deploy trigger.
     kb = InlineKeyboardBuilder()
 
     kb.button(text="Статистика", callback_data="stats")
