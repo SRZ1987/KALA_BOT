@@ -4,6 +4,7 @@ from aiogram.filters import Command
 
 from keyboards.main_menu_kb import main_menu_kb
 from dbase.users_db import add_user
+from config import ADMIN_ID
 
 router = Router()
 
@@ -22,5 +23,7 @@ async def cmd_start(message: Message):
         "Конечно клёв зависит и от многих других факторов."
         "Но он поможет при выборе ехать на шашлыки или на рыбалку,"
         "Также, здесь вы найдёте полезные ссылки, которые помогут вам немного сохранить времени",
-        reply_markup=main_menu_kb()
+        reply_markup=main_menu_kb(
+            message.from_user.id == ADMIN_ID
+        )
     )
