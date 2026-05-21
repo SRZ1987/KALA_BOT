@@ -5,6 +5,7 @@ CONNECTION_KB_BUTTONS = {
     "Отзыв администратору": "feedback",
     "NB! SOS": "sos_start",
     "Попутчики": "rides",
+    "Фото дня": "photo_posts",
     "Объявления продавцов": "seller_ads",
 }
 

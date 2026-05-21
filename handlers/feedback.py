@@ -24,7 +24,8 @@ async def feedback_start(
     try:
         await callback.message.edit_text(
             "Напиши сообщение администратору.\n"
-            "Можно отправить текст, фото или голосовое."
+            "Можно отправить текст, фото или голосовое.",
+            reply_markup=back_kb()
         )
 
     except TelegramBadRequest:

@@ -110,7 +110,10 @@ async def seller_ads_view(callback: CallbackQuery):
 @router.callback_query(F.data == "seller_ads_add")
 async def seller_ads_add(callback: CallbackQuery, state: FSMContext):
     if not is_seller(callback.from_user.id):
-        await callback.answer("Только продавец может добавить объявление.", show_alert=True)
+        await callback.answer(
+            "Только продавец может добавить объявление.",
+            show_alert=True
+        )
         return
 
     seconds_left = get_seconds_until_next_post(callback.from_user.id)
@@ -124,7 +127,8 @@ async def seller_ads_add(callback: CallbackQuery, state: FSMContext):
 
     await state.set_state(SellerAdState.text)
     await callback.message.edit_text(
-        "Напиши объявление продавца одним сообщением."
+        "Напиши объявление продавца одним сообщением.",
+        reply_markup=seller_ads_back_kb()
     )
     await callback.answer()
 
@@ -133,7 +137,9 @@ async def seller_ads_add(callback: CallbackQuery, state: FSMContext):
 async def seller_ads_save(message: Message, state: FSMContext):
     if not is_seller(message.from_user.id):
         await state.clear()
-        await message.answer("Только продавец может добавить объявление.")
+        await message.answer(
+            "Только продавец может добавить объявление."
+        )
         return
 
     seconds_left = get_seconds_until_next_post(message.from_user.id)

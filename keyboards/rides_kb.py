@@ -21,6 +21,14 @@ def rides_back_kb():
     return kb.as_markup()
 
 
+def rides_back_inline_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Назад к попутчикам", callback_data="rides")
+    kb.adjust(1)
+
+    return kb.as_markup()
+
+
 def rides_my_ads_kb(ads):
     kb = InlineKeyboardBuilder()
 

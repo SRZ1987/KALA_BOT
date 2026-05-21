@@ -27,3 +27,7 @@ class AdminState(StatesGroup):
 
 class SellerAdState(StatesGroup):
     text = State()
+
+
+class PhotoPostState(StatesGroup):
+    content = State()

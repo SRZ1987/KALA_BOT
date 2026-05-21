@@ -10,6 +10,7 @@ from .connection import router as connection
 from .SOS import router as sos
 from .ride_ads import router as ride_ads
 from .seller_ads import router as seller_ads
+from .photo_posts import router as photo_posts
 routers = [
     start_router,
     city_router,
@@ -23,6 +24,7 @@ routers = [
     sos,
     ride_ads,
     seller_ads,
+    photo_posts,
 
 
 

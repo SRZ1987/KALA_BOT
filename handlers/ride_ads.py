@@ -14,6 +14,7 @@ from dbase.rides_db import (
 )
 from keyboards.rides_kb import (
     rides_admin_ads_kb,
+    rides_back_inline_kb,
     rides_back_kb,
     rides_menu_kb,
     rides_my_ads_kb,
@@ -119,7 +120,8 @@ async def rides_add(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "Напиши текст объявления одним сообщением.\n\n"
         "Например: ищу попутчика, еду завтра в 10:00 из Таллинна "
-        "в Тарту, связь через Telegram."
+        "в Тарту, связь через Telegram.",
+        reply_markup=rides_back_inline_kb()
     )
 
     await callback.answer()

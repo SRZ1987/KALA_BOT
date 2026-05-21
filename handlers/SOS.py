@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from dbase.sos_db import add_sos_report
 from dbase.users_db import all_users
 from keyboards.SOS_kb import contact_geo_kb
-from keyboards.back_kb import back_kb
+from keyboards.back_kb import back_kb, connection_back_kb
 from utils.fsm import SOSState
 
 
@@ -41,7 +41,10 @@ async def broadcast_sos(bot, text: str, users: list[int], lat=None, lon=None):
 @router.callback_query(F.data == "sos_start")
 async def sos_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(SOSState.problem)
-    await callback.message.answer("Опиши проблему:")
+    await callback.message.edit_text(
+        "Опиши проблему:",
+        reply_markup=connection_back_kb()
+    )
     await callback.answer()
 
 
@@ -51,7 +54,7 @@ async def get_problem(message: Message, state: FSMContext):
     await state.set_state(SOSState.location)
 
     await message.answer(
-        "Отправь геолокацию",
+        "Отправь геолокацию или нажми Назад.",
         reply_markup=contact_geo_kb()
     )
 
@@ -68,7 +71,10 @@ async def get_location(message: Message, state: FSMContext):
     await state.update_data(lat=lat, lon=lon)
     await state.set_state(SOSState.phone)
 
-    await message.answer("Теперь отправь номер телефона")
+    await message.answer(
+        "Теперь отправь номер телефона или нажми Назад.",
+        reply_markup=contact_geo_kb()
+    )
 
 
 @router.message(SOSState.phone)
