@@ -166,6 +166,25 @@ async def _broadcast_poll(bot, question, options):
     return sent, failed
 
 
+async def _broadcast_native_poll(message):
+    sent = 0
+    failed = 0
+
+    for user_id in list(all_users):
+        try:
+            await message.bot.copy_message(
+                chat_id=user_id,
+                from_chat_id=message.chat.id,
+                message_id=message.message_id
+            )
+            sent += 1
+            await asyncio.sleep(0.05)
+        except Exception:
+            failed += 1
+
+    return sent, failed
+
+
 @router.callback_query(F.data == "admin_panel")
 async def admin_panel(callback: CallbackQuery, state: FSMContext):
     await state.clear()
@@ -411,6 +430,17 @@ async def admin_poll_send(message: Message, state: FSMContext):
     if not is_admin(message.from_user.id):
         return
 
+    if message.poll:
+        sent, failed = await _broadcast_native_poll(message)
+        await state.clear()
+        await message.answer(
+            "Голосование отправлено.\n\n"
+            f"Доставлено: <b>{sent}</b>\n"
+            f"Не удалось отправить: <b>{failed}</b>",
+            reply_markup=admin_menu_kb()
+        )
+        return
+
     try:
         question, options = _parse_poll(message.text)
     except ValueError as error:
@@ -430,6 +460,20 @@ async def admin_poll_send(message: Message, state: FSMContext):
 
     sent, failed = await _broadcast_poll(message.bot, question, options)
     await state.clear()
+    await message.answer(
+        "Голосование отправлено.\n\n"
+        f"Доставлено: <b>{sent}</b>\n"
+        f"Не удалось отправить: <b>{failed}</b>",
+        reply_markup=admin_menu_kb()
+    )
+
+
+@router.message(F.poll)
+async def admin_native_poll(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+
+    sent, failed = await _broadcast_native_poll(message)
     await message.answer(
         "Голосование отправлено.\n\n"
         f"Доставлено: <b>{sent}</b>\n"
