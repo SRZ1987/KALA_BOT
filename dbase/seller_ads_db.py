@@ -99,13 +99,15 @@ def get_seconds_until_next_post(user_id):
     return max(0, seconds_left)
 
 
-def add_seller_ad(user, text):
+def add_seller_ad(user, text, post_type="text", file_id=None):
     now = _now()
     ad = {
         "id": uuid.uuid4().hex[:10],
         "user_id": user.id,
         "username": user.username,
         "full_name": user.full_name,
+        "post_type": post_type,
+        "file_id": file_id,
         "text": text,
         "created_at": now.isoformat(),
         "expires_at": (now + timedelta(days=AD_LIFETIME_DAYS)).isoformat()

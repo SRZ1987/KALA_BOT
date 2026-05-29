@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from html import escape
 
@@ -14,6 +15,7 @@ from dbase.seller_ads_db import (
     get_seconds_until_next_post,
     get_user_seller_ads,
 )
+from dbase.users_db import all_users
 from keyboards.seller_ads_kb import (
     seller_ads_admin_kb,
     seller_ads_back_kb,
@@ -69,6 +71,51 @@ def _format_ads(ads, empty_text):
     return "\n\n".join(lines)
 
 
+def _format_single_ad(ad):
+    return _format_ads([ad], "")
+
+
+async def _send_seller_ad(message, ad):
+    text = _format_single_ad(ad)
+
+    if ad.get("post_type") == "photo" and ad.get("file_id"):
+        await message.answer_photo(
+            ad["file_id"],
+            caption=text,
+            reply_markup=seller_ads_back_kb()
+        )
+        return
+
+    await message.answer(
+        text,
+        reply_markup=seller_ads_back_kb()
+    )
+
+
+async def _broadcast_seller_ad(bot, ad):
+    text = "Новое объявление продавца:\n\n" + _format_single_ad(ad)
+    sent = 0
+    failed = 0
+
+    for user_id in list(all_users):
+        try:
+            if ad.get("post_type") == "photo" and ad.get("file_id"):
+                await bot.send_photo(
+                    user_id,
+                    ad["file_id"],
+                    caption=text
+                )
+            else:
+                await bot.send_message(user_id, text)
+
+            sent += 1
+            await asyncio.sleep(0.05)
+        except Exception:
+            failed += 1
+
+    return sent, failed
+
+
 def _format_seconds(seconds):
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
@@ -95,6 +142,22 @@ async def seller_ads_menu(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "seller_ads_view")
 async def seller_ads_view(callback: CallbackQuery):
     ads = get_all_seller_ads()
+
+    if any(ad.get("post_type") == "photo" and ad.get("file_id") for ad in ads):
+        await callback.message.edit_text(
+            "Объявления продавцов:",
+            reply_markup=(
+                seller_ads_admin_kb(ads)
+                if _is_admin(callback.from_user.id)
+                else seller_ads_back_kb()
+            )
+        )
+
+        for ad in ads[-20:]:
+            await _send_seller_ad(callback.message, ad)
+
+        await callback.answer()
+        return
 
     await callback.message.edit_text(
         _format_ads(ads, "Активных объявлений продавцов пока нет."),
@@ -127,7 +190,8 @@ async def seller_ads_add(callback: CallbackQuery, state: FSMContext):
 
     await state.set_state(SellerAdState.text)
     await callback.message.edit_text(
-        "Напиши объявление продавца одним сообщением.",
+        "Напиши объявление продавца одним сообщением.\n\n"
+        "Можно отправить текст или фото с подписью.",
         reply_markup=seller_ads_back_kb()
     )
     await callback.answer()
@@ -152,20 +216,31 @@ async def seller_ads_save(message: Message, state: FSMContext):
         )
         return
 
-    text = (message.text or "").strip()
+    is_photo = bool(message.photo)
+    text = (message.caption if is_photo else message.text or "").strip()
 
-    if len(text) < 10:
+    if not is_photo and len(text) < 10:
         await message.answer("Слишком короткое объявление.")
         return
 
-    if len(text) > 900:
-        await message.answer("Умести объявление в 900 символов.")
+    max_length = 650 if is_photo else 900
+
+    if len(text) > max_length:
+        await message.answer(f"Умести объявление в {max_length} символов.")
         return
 
-    ad = add_seller_ad(message.from_user, text)
+    ad = add_seller_ad(
+        message.from_user,
+        text,
+        post_type="photo" if is_photo else "text",
+        file_id=message.photo[-1].file_id if is_photo else None
+    )
     await state.clear()
+    sent, failed = await _broadcast_seller_ad(message.bot, ad)
     await message.answer(
-        f"Объявление #{ad['id']} опубликовано на 7 дней.",
+        f"Объявление #{ad['id']} опубликовано на 7 дней и отправлено в ленту.\n\n"
+        f"Доставлено: <b>{sent}</b>\n"
+        f"Не удалось отправить: <b>{failed}</b>",
         reply_markup=seller_ads_back_kb()
     )
 
