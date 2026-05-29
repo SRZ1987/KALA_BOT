@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from html import escape
 
@@ -118,6 +119,51 @@ def _format_sos_reports(reports):
         )
 
     return "\n\n".join(lines)
+
+
+def _parse_poll(text):
+    lines = [
+        line.strip()
+        for line in (text or "").splitlines()
+        if line.strip()
+    ]
+
+    if len(lines) < 3:
+        raise ValueError("poll_lines")
+
+    question = lines[0]
+    options = lines[1:]
+
+    if len(question) > 300:
+        raise ValueError("question_long")
+
+    if len(options) > 10:
+        raise ValueError("too_many_options")
+
+    if any(len(option) > 100 for option in options):
+        raise ValueError("option_long")
+
+    return question, options
+
+
+async def _broadcast_poll(bot, question, options):
+    sent = 0
+    failed = 0
+
+    for user_id in list(all_users):
+        try:
+            await bot.send_poll(
+                user_id,
+                question=question,
+                options=options,
+                is_anonymous=False
+            )
+            sent += 1
+            await asyncio.sleep(0.05)
+        except Exception:
+            failed += 1
+
+    return sent, failed
 
 
 @router.callback_query(F.data == "admin_panel")
@@ -340,6 +386,56 @@ async def admin_sos(callback: CallbackQuery):
         reply_markup=admin_sos_kb(reports)
     )
     await callback.answer()
+
+
+@router.callback_query(F.data == "admin_poll")
+async def admin_poll(callback: CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    await state.set_state(AdminState.poll)
+    await callback.message.edit_text(
+        "Напиши голосование одним сообщением:\n\n"
+        "1 строка - вопрос\n"
+        "2 строка - первый вариант\n"
+        "3 строка - второй вариант\n\n"
+        "Можно добавить до 10 вариантов.",
+        reply_markup=admin_back_kb()
+    )
+    await callback.answer()
+
+
+@router.message(AdminState.poll)
+async def admin_poll_send(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+
+    try:
+        question, options = _parse_poll(message.text)
+    except ValueError as error:
+        reason = str(error)
+
+        if reason == "question_long":
+            await message.answer("Вопрос слишком длинный. Максимум 300 символов.")
+        elif reason == "too_many_options":
+            await message.answer("Слишком много вариантов. Максимум 10.")
+        elif reason == "option_long":
+            await message.answer("Один из вариантов слишком длинный. Максимум 100 символов.")
+        else:
+            await message.answer(
+                "Нужно минимум 3 строки: вопрос и хотя бы 2 варианта ответа."
+            )
+        return
+
+    sent, failed = await _broadcast_poll(message.bot, question, options)
+    await state.clear()
+    await message.answer(
+        "Голосование отправлено.\n\n"
+        f"Доставлено: <b>{sent}</b>\n"
+        f"Не удалось отправить: <b>{failed}</b>",
+        reply_markup=admin_menu_kb()
+    )
 
 
 @router.callback_query(F.data.startswith("admin_sos_delete:"))

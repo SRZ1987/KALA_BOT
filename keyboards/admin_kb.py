@@ -9,6 +9,7 @@ def admin_menu_kb():
     kb.button(text="Продавцы", callback_data="admin_sellers")
     kb.button(text="Бан-лист", callback_data="admin_bans")
     kb.button(text="SOS сообщения", callback_data="admin_sos")
+    kb.button(text="Голосование", callback_data="admin_poll")
     kb.button(text="Назад в меню", callback_data="back_to_main_menu")
 
     kb.adjust(1)
