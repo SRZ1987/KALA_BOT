@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from html import escape
 
@@ -12,6 +13,7 @@ from dbase.rides_db import (
     get_all_ads,
     get_user_ads,
 )
+from dbase.users_db import all_users
 from keyboards.rides_kb import (
     rides_admin_ads_kb,
     rides_back_inline_kb,
@@ -76,6 +78,17 @@ def _format_ads(ads, empty_text):
         )
 
     return "\n\n".join(lines)
+
+
+async def _broadcast_ride_ad(bot, ad):
+    text = "Новое объявление в попутчиках:\n\n" + _format_ads([ad], "")
+
+    for user_id in list(all_users):
+        try:
+            await bot.send_message(user_id, text)
+            await asyncio.sleep(0.05)
+        except Exception:
+            continue
 
 
 @router.callback_query(F.data == "rides")
@@ -152,9 +165,10 @@ async def rides_save(message: Message, state: FSMContext):
     )
 
     await state.clear()
+    await _broadcast_ride_ad(message.bot, ad)
 
     await message.answer(
-        f"Готово. Объявление #{ad['id']} опубликовано на 7 дней.",
+        f"Готово. Объявление #{ad['id']} опубликовано на 7 дней и отправлено в общую ленту.",
         reply_markup=rides_back_kb()
     )
 

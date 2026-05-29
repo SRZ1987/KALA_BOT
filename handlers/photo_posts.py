@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from html import escape
 
@@ -11,6 +12,7 @@ from dbase.photo_posts_db import (
     get_photo_posts,
     get_seconds_until_next_photo,
 )
+from dbase.users_db import all_users
 from keyboards.photo_posts_kb import (
     photo_posts_back_kb,
     photo_posts_menu_kb,
@@ -62,6 +64,25 @@ def _caption(post):
         return f"{header}\n\n{escape(text)}"
 
     return header
+
+
+async def _broadcast_post(bot, post):
+    post_type = post.get("post_type")
+    file_id = post.get("file_id")
+    caption = _caption(post)
+
+    for user_id in list(all_users):
+        try:
+            if post_type == "photo" and file_id:
+                await bot.send_photo(user_id, file_id, caption=caption)
+            elif post_type == "voice" and file_id:
+                await bot.send_voice(user_id, file_id, caption=caption)
+            elif post_type == "text":
+                await bot.send_message(user_id, caption)
+
+            await asyncio.sleep(0.05)
+        except Exception:
+            continue
 
 
 @router.callback_query(F.data == "photo_posts")
@@ -156,46 +177,76 @@ async def photo_posts_save(message: Message, state: FSMContext):
                 )
                 return
 
-        add_photo_post(
+        post = add_photo_post(
             message.from_user,
             "photo",
             file_id=message.photo[-1].file_id,
             text=message.caption
         )
+        await _broadcast_post(message.bot, post)
         await state.clear()
         await message.answer(
-            "Фото добавлено в ленту.",
+            "Фото опубликовано и отправлено в общую ленту.",
             reply_markup=photo_posts_back_kb()
         )
         return
 
     if is_admin and message.voice:
-        add_photo_post(
+        post = add_photo_post(
             message.from_user,
             "voice",
             file_id=message.voice.file_id,
             text=message.caption
         )
+        await _broadcast_post(message.bot, post)
         await state.clear()
         await message.answer(
-            "Голосовое добавлено в ленту.",
+            "Голосовое опубликовано и отправлено в общую ленту.",
             reply_markup=photo_posts_back_kb()
         )
         return
 
     if is_admin and message.text:
-        add_photo_post(
+        post = add_photo_post(
             message.from_user,
             "text",
             text=message.text
         )
+        await _broadcast_post(message.bot, post)
         await state.clear()
         await message.answer(
-            "Сообщение добавлено в ленту.",
+            "Сообщение опубликовано и отправлено в общую ленту.",
             reply_markup=photo_posts_back_kb()
         )
         return
 
     await message.answer(
         "Отправь фото. Описание можно добавить в подписи к фото."
+    )
+
+
+@router.message(F.photo)
+async def photo_posts_direct_photo(message: Message):
+    is_admin = _is_admin(message.from_user.id)
+
+    if not is_admin:
+        seconds_left = get_seconds_until_next_photo(message.from_user.id)
+
+        if seconds_left:
+            await message.answer(
+                f"Новое фото можно добавить через {_format_seconds(seconds_left)}.",
+                reply_markup=photo_posts_back_kb()
+            )
+            return
+
+    post = add_photo_post(
+        message.from_user,
+        "photo",
+        file_id=message.photo[-1].file_id,
+        text=message.caption
+    )
+    await _broadcast_post(message.bot, post)
+    await message.answer(
+        "Фото опубликовано в общей ленте.",
+        reply_markup=photo_posts_back_kb()
     )
