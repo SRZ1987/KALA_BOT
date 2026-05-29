@@ -3,9 +3,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 MAIN_MENU_BUTTONS = {
     "Календарь клёва": "fishing_calender_main_menu",
-    "Ищу попутчика": "rides_add",
-    "Попутчики": "rides",
-    "Фото дня": "photo_posts",
     "Полезные ссылки": "useful_links",
     "Связь и остальное": "connection",
 }
