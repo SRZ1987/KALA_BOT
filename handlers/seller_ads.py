@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from config import ADMIN_ID
-from dbase.admin_db import is_seller
+from dbase.admin_db import is_seller, is_test_mode_enabled
 from dbase.seller_ads_db import (
     add_seller_ad,
     delete_seller_ad,
@@ -108,6 +108,9 @@ async def _send_seller_ad(message, ad):
 
 
 async def _broadcast_seller_ad(bot, ad):
+    if is_test_mode_enabled():
+        return 0, 0
+
     text = _format_public_ad(ad)
     sent = 0
     failed = 0
@@ -132,6 +135,9 @@ async def _broadcast_seller_ad(bot, ad):
 
 
 async def _publish_seller_ad_to_channel(bot, ad):
+    if is_test_mode_enabled():
+        return None
+
     channel_id = get_content_channel_id()
 
     if not channel_id:
@@ -295,10 +301,20 @@ async def seller_ads_save(message: Message, state: FSMContext):
     channel_text = (
         "В канал опубликовано и закреплено."
         if channel_message
-        else "Канал не настроен, в канал не отправлено."
+        else (
+            "Тестовый режим включен, в канал не отправлено."
+            if is_test_mode_enabled()
+            else "Канал не настроен, в канал не отправлено."
+        )
+    )
+    delivery_text = (
+        "Тестовый режим включен, рассылка пользователям отключена."
+        if is_test_mode_enabled()
+        else "Отправлено в ленту."
     )
     await message.answer(
-        f"Объявление #{ad['id']} опубликовано на 7 дней и отправлено в ленту.\n\n"
+        f"Объявление #{ad['id']} опубликовано на 7 дней.\n\n"
+        f"{delivery_text}\n"
         f"{channel_text}\n\n"
         f"Доставлено: <b>{sent}</b>\n"
         f"Не удалось отправить: <b>{failed}</b>",

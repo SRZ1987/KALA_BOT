@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from config import ADMIN_ID
+from dbase.admin_db import is_test_mode_enabled
 from dbase.rides_db import (
     add_ride_ad,
     delete_user_ad,
@@ -81,6 +82,9 @@ def _format_ads(ads, empty_text):
 
 
 async def _broadcast_ride_ad(bot, ad):
+    if is_test_mode_enabled():
+        return
+
     text = "Новое объявление в попутчиках:\n\n" + _format_ads([ad], "")
 
     for user_id in list(all_users):
@@ -168,7 +172,8 @@ async def rides_save(message: Message, state: FSMContext):
     await _broadcast_ride_ad(message.bot, ad)
 
     await message.answer(
-        f"Готово. Объявление #{ad['id']} опубликовано на 7 дней и отправлено в общую ленту.",
+        f"Готово. Объявление #{ad['id']} опубликовано на 7 дней."
+        f"{' Тестовый режим включен, рассылка отключена.' if is_test_mode_enabled() else ' Отправлено в общую ленту.'}",
         reply_markup=rides_back_kb()
     )
 

@@ -1,11 +1,19 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from dbase.admin_db import is_test_mode_enabled
+
 
 def admin_menu_kb():
     # Admin controls are grouped here so Railway gets a fresh deploy trigger.
     kb = InlineKeyboardBuilder()
+    test_mode_text = (
+        "Тестовый режим: ВКЛ"
+        if is_test_mode_enabled()
+        else "Тестовый режим: ВЫКЛ"
+    )
 
     kb.button(text="Статистика", callback_data="stats")
+    kb.button(text=test_mode_text, callback_data="admin_toggle_test_mode")
     kb.button(text="Продавцы", callback_data="admin_sellers")
     kb.button(text="Бан-лист", callback_data="admin_bans")
     kb.button(text="SOS сообщения", callback_data="admin_sos")

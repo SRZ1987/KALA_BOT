@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 SELLERS_FILE = "data/sellers.json"
 BANNED_USERS_FILE = "data/banned_users.json"
+SETTINGS_FILE = "data/admin_settings.json"
 
 
 def _now():
@@ -110,3 +111,23 @@ def unban_user(user_id):
         _save_dict(BANNED_USERS_FILE, banned_users)
 
     return deleted
+
+
+def get_admin_settings():
+    return _load_dict(SETTINGS_FILE)
+
+
+def is_test_mode_enabled():
+    return bool(get_admin_settings().get("test_mode"))
+
+
+def set_test_mode(enabled):
+    settings = get_admin_settings()
+    settings["test_mode"] = bool(enabled)
+    _save_dict(SETTINGS_FILE, settings)
+
+    return settings["test_mode"]
+
+
+def toggle_test_mode():
+    return set_test_mode(not is_test_mode_enabled())

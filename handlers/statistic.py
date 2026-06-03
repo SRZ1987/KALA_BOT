@@ -13,6 +13,8 @@ from dbase.admin_db import (
     delete_seller,
     get_banned_users,
     get_sellers,
+    is_test_mode_enabled,
+    toggle_test_mode,
     unban_user,
 )
 from dbase.sos_db import delete_sos_report, get_sos_reports
@@ -147,6 +149,9 @@ def _parse_poll(text):
 
 
 async def _broadcast_poll(bot, question, options):
+    if is_test_mode_enabled():
+        return 0, 0
+
     sent = 0
     failed = 0
 
@@ -167,6 +172,9 @@ async def _broadcast_poll(bot, question, options):
 
 
 async def _broadcast_native_poll(message):
+    if is_test_mode_enabled():
+        return 0, 0
+
     sent = 0
     failed = 0
 
@@ -210,10 +218,28 @@ async def stats(callback: CallbackQuery):
         "Статистика\n\n"
         f"Общее количество подписчиков: <b>{len(all_users)}</b>\n"
         f"Продавцов: <b>{len(get_sellers())}</b>\n"
-        f"Забанено: <b>{len(get_banned_users())}</b>",
+        f"Забанено: <b>{len(get_banned_users())}</b>\n"
+        f"Тестовый режим: <b>{'включен' if is_test_mode_enabled() else 'выключен'}</b>",
         reply_markup=admin_menu_kb()
     )
     await callback.answer()
+
+
+@router.callback_query(F.data == "admin_toggle_test_mode")
+async def admin_toggle_test_mode(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    enabled = toggle_test_mode()
+    await callback.message.edit_text(
+        "Админка\n\n"
+        f"Тестовый режим {'включен' if enabled else 'выключен'}.",
+        reply_markup=admin_menu_kb()
+    )
+    await callback.answer(
+        "Тестовый режим включен" if enabled else "Тестовый режим выключен"
+    )
 
 
 @router.callback_query(F.data == "admin_sellers")
@@ -434,8 +460,12 @@ async def admin_poll_send(message: Message, state: FSMContext):
         sent, failed = await _broadcast_native_poll(message)
         await state.clear()
         await message.answer(
-            "Голосование отправлено.\n\n"
-            f"Доставлено: <b>{sent}</b>\n"
+            (
+                "Тестовый режим включен. Голосование не отправлено пользователям.\n\n"
+                if is_test_mode_enabled()
+                else "Голосование отправлено.\n\n"
+            )
+            + f"Доставлено: <b>{sent}</b>\n"
             f"Не удалось отправить: <b>{failed}</b>",
             reply_markup=admin_menu_kb()
         )
@@ -461,8 +491,12 @@ async def admin_poll_send(message: Message, state: FSMContext):
     sent, failed = await _broadcast_poll(message.bot, question, options)
     await state.clear()
     await message.answer(
-        "Голосование отправлено.\n\n"
-        f"Доставлено: <b>{sent}</b>\n"
+        (
+            "Тестовый режим включен. Голосование не отправлено пользователям.\n\n"
+            if is_test_mode_enabled()
+            else "Голосование отправлено.\n\n"
+        )
+        + f"Доставлено: <b>{sent}</b>\n"
         f"Не удалось отправить: <b>{failed}</b>",
         reply_markup=admin_menu_kb()
     )
@@ -475,8 +509,12 @@ async def admin_native_poll(message: Message):
 
     sent, failed = await _broadcast_native_poll(message)
     await message.answer(
-        "Голосование отправлено.\n\n"
-        f"Доставлено: <b>{sent}</b>\n"
+        (
+            "Тестовый режим включен. Голосование не отправлено пользователям.\n\n"
+            if is_test_mode_enabled()
+            else "Голосование отправлено.\n\n"
+        )
+        + f"Доставлено: <b>{sent}</b>\n"
         f"Не удалось отправить: <b>{failed}</b>",
         reply_markup=admin_menu_kb()
     )

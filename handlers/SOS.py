@@ -4,6 +4,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
+from dbase.admin_db import is_test_mode_enabled
 from dbase.sos_db import add_sos_report
 from dbase.users_db import all_users
 from keyboards.SOS_kb import contact_geo_kb
@@ -15,6 +16,9 @@ router = Router()
 
 
 async def broadcast_sos(bot, text: str, users: list[int], lat=None, lon=None):
+    if is_test_mode_enabled():
+        return
+
     for user_id in users:
         try:
             await bot.send_message(user_id, text)
@@ -103,7 +107,11 @@ async def get_phone(message: Message, state: FSMContext):
     await state.clear()
 
     await message.answer(
-        "SOS отправлен!",
+        (
+            "SOS сохранен. Тестовый режим включен, рассылка отключена."
+            if is_test_mode_enabled()
+            else "SOS отправлен!"
+        ),
         reply_markup=ReplyKeyboardRemove()
     )
 
