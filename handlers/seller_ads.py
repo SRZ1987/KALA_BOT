@@ -81,8 +81,17 @@ def _format_single_ad(ad):
     return _format_ads([ad], "")
 
 
+def _format_public_ad(ad):
+    text = (ad.get("text") or "").strip()
+
+    if text:
+        return escape(text)
+
+    return None
+
+
 async def _send_seller_ad(message, ad):
-    text = _format_single_ad(ad)
+    text = _format_public_ad(ad)
 
     if ad.get("post_type") == "photo" and ad.get("file_id"):
         await message.answer_photo(
@@ -99,7 +108,7 @@ async def _send_seller_ad(message, ad):
 
 
 async def _broadcast_seller_ad(bot, ad):
-    text = "Новое объявление продавца:\n\n" + _format_single_ad(ad)
+    text = _format_public_ad(ad)
     sent = 0
     failed = 0
 
@@ -128,7 +137,7 @@ async def _publish_seller_ad_to_channel(bot, ad):
     if not channel_id:
         return None
 
-    text = "Объявление продавца\n\n" + _format_single_ad(ad)
+    text = _format_public_ad(ad)
 
     if ad.get("post_type") == "photo" and ad.get("file_id"):
         channel_message = await bot.send_photo(
