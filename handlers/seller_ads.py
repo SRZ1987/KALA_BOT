@@ -135,9 +135,6 @@ async def _broadcast_seller_ad(bot, ad):
 
 
 async def _publish_seller_ad_to_channel(bot, ad):
-    if is_test_mode_enabled():
-        return None
-
     channel_id = get_content_channel_id()
 
     if not channel_id:
@@ -301,11 +298,7 @@ async def seller_ads_save(message: Message, state: FSMContext):
     channel_text = (
         "В канал опубликовано и закреплено."
         if channel_message
-        else (
-            "Тестовый режим включен, в канал не отправлено."
-            if is_test_mode_enabled()
-            else "Канал не настроен, в канал не отправлено."
-        )
+        else "Канал не настроен, в канал не отправлено."
     )
     delivery_text = (
         "Тестовый режим включен, рассылка пользователям отключена."

@@ -91,9 +91,6 @@ async def _broadcast_post(bot, post):
 
 
 async def _publish_post_to_channel(bot, post):
-    if is_test_mode_enabled():
-        return None
-
     channel_id = get_content_channel_id()
 
     if not channel_id:
@@ -230,11 +227,6 @@ async def photo_posts_save(message: Message, state: FSMContext):
                 "Опубликовано в канале для обсуждения.",
                 reply_markup=photo_posts_back_kb()
             )
-        elif is_test_mode_enabled():
-            await message.answer(
-                "Тестовый режим включен. В канал не отправлено.",
-                reply_markup=photo_posts_back_kb()
-            )
         else:
             await message.answer(
                 "Канал не настроен. Добавь CONTENT_CHANNEL_ID в Railway.",
@@ -310,11 +302,6 @@ async def photo_posts_direct_media(message: Message):
     if channel_message:
         await message.answer(
             "Опубликовано в канале для обсуждения.",
-            reply_markup=photo_posts_back_kb()
-        )
-    elif is_test_mode_enabled():
-        await message.answer(
-            "Тестовый режим включен. В канал не отправлено.",
             reply_markup=photo_posts_back_kb()
         )
     else:
