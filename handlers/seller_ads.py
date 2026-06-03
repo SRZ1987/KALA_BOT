@@ -225,7 +225,11 @@ async def seller_ads_add(callback: CallbackQuery, state: FSMContext):
         )
         return
 
-    seconds_left = get_seconds_until_next_post(callback.from_user.id)
+    seconds_left = (
+        0
+        if _is_admin(callback.from_user.id)
+        else get_seconds_until_next_post(callback.from_user.id)
+    )
 
     if seconds_left:
         await callback.answer(
@@ -252,7 +256,11 @@ async def seller_ads_save(message: Message, state: FSMContext):
         )
         return
 
-    seconds_left = get_seconds_until_next_post(message.from_user.id)
+    seconds_left = (
+        0
+        if _is_admin(message.from_user.id)
+        else get_seconds_until_next_post(message.from_user.id)
+    )
 
     if seconds_left:
         await state.clear()
