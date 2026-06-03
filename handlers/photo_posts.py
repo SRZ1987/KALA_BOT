@@ -17,6 +17,7 @@ from keyboards.photo_posts_kb import (
     photo_posts_back_kb,
     photo_posts_menu_kb,
 )
+from utils.channel import get_content_channel_id
 from utils.fsm import PhotoPostState
 
 
@@ -85,6 +86,31 @@ async def _broadcast_post(bot, post):
             continue
 
 
+async def _publish_post_to_channel(bot, post):
+    channel_id = get_content_channel_id()
+
+    if not channel_id:
+        return None
+
+    post_type = post.get("post_type")
+    file_id = post.get("file_id")
+    caption = _caption(post)
+
+    if post_type == "photo" and file_id:
+        return await bot.send_photo(channel_id, file_id, caption=caption)
+
+    if post_type == "video" and file_id:
+        return await bot.send_video(channel_id, file_id, caption=caption)
+
+    if post_type == "voice" and file_id:
+        return await bot.send_voice(channel_id, file_id, caption=caption)
+
+    if post_type == "text":
+        return await bot.send_message(channel_id, caption)
+
+    return None
+
+
 @router.callback_query(F.data == "photo_posts")
 async def photo_posts_menu(callback: CallbackQuery, state: FSMContext):
     await state.clear()
@@ -120,6 +146,11 @@ async def photo_posts_view(callback: CallbackQuery):
 
         if post_type == "photo" and file_id:
             await callback.message.answer_photo(
+                file_id,
+                caption=_caption(post)
+            )
+        elif post_type == "video" and file_id:
+            await callback.message.answer_video(
                 file_id,
                 caption=_caption(post)
             )
@@ -165,7 +196,7 @@ async def photo_posts_add(callback: CallbackQuery, state: FSMContext):
 async def photo_posts_save(message: Message, state: FSMContext):
     is_admin = _is_admin(message.from_user.id)
 
-    if message.photo:
+    if message.photo or message.video:
         if not is_admin:
             seconds_left = get_seconds_until_next_photo(message.from_user.id)
 
@@ -177,18 +208,26 @@ async def photo_posts_save(message: Message, state: FSMContext):
                 )
                 return
 
+        is_video = bool(message.video)
         post = add_photo_post(
             message.from_user,
-            "photo",
-            file_id=message.photo[-1].file_id,
+            "video" if is_video else "photo",
+            file_id=message.video.file_id if is_video else message.photo[-1].file_id,
             text=message.caption
         )
-        await _broadcast_post(message.bot, post)
+        channel_message = await _publish_post_to_channel(message.bot, post)
         await state.clear()
-        await message.answer(
-            "Фото опубликовано и отправлено в общую ленту.",
-            reply_markup=photo_posts_back_kb()
-        )
+
+        if channel_message:
+            await message.answer(
+                "Опубликовано в канале для обсуждения.",
+                reply_markup=photo_posts_back_kb()
+            )
+        else:
+            await message.answer(
+                "Канал не настроен. Добавь CONTENT_CHANNEL_ID в Railway.",
+                reply_markup=photo_posts_back_kb()
+            )
         return
 
     if is_admin and message.voice:
@@ -225,8 +264,8 @@ async def photo_posts_save(message: Message, state: FSMContext):
     )
 
 
-@router.message(F.photo)
-async def photo_posts_direct_photo(message: Message):
+@router.message(F.photo | F.video)
+async def photo_posts_direct_media(message: Message):
     is_admin = _is_admin(message.from_user.id)
 
     if not is_admin:
@@ -234,19 +273,27 @@ async def photo_posts_direct_photo(message: Message):
 
         if seconds_left:
             await message.answer(
-                f"Новое фото можно добавить через {_format_seconds(seconds_left)}.",
+                f"Новое фото или видео можно добавить через {_format_seconds(seconds_left)}.",
                 reply_markup=photo_posts_back_kb()
             )
             return
 
+    is_video = bool(message.video)
     post = add_photo_post(
         message.from_user,
-        "photo",
-        file_id=message.photo[-1].file_id,
+        "video" if is_video else "photo",
+        file_id=message.video.file_id if is_video else message.photo[-1].file_id,
         text=message.caption
     )
-    await _broadcast_post(message.bot, post)
-    await message.answer(
-        "Фото опубликовано в общей ленте.",
-        reply_markup=photo_posts_back_kb()
-    )
+    channel_message = await _publish_post_to_channel(message.bot, post)
+
+    if channel_message:
+        await message.answer(
+            "Опубликовано в канале для обсуждения.",
+            reply_markup=photo_posts_back_kb()
+        )
+    else:
+        await message.answer(
+            "Канал не настроен. Добавь CONTENT_CHANNEL_ID в Railway.",
+            reply_markup=photo_posts_back_kb()
+        )

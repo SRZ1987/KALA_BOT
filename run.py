@@ -7,6 +7,7 @@ from handlers import routers
 from config import API_TOKEN
 from utils.logger import logger
 from utils.ban_middleware import BanMiddleware
+from utils.seller_ads_cleanup import cleanup_expired_seller_ads_loop
 
 
 
@@ -29,6 +30,7 @@ async def main():
 
     logger.info("Бот запущен")
 
+    asyncio.create_task(cleanup_expired_seller_ads_loop(bot))
 
     await dp.start_polling(bot)
 

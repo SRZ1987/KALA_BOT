@@ -71,6 +71,24 @@ def cleanup_expired_seller_ads():
     return active_ads
 
 
+def pop_expired_seller_ads():
+    ads = _load(ADS_FILE, [])
+    now = _now()
+    active_ads = []
+    expired_ads = []
+
+    for ad in ads:
+        if _parse_time(ad.get("expires_at")) > now:
+            active_ads.append(ad)
+        else:
+            expired_ads.append(ad)
+
+    if expired_ads:
+        _save(ADS_FILE, active_ads)
+
+    return expired_ads
+
+
 def get_all_seller_ads():
     return cleanup_expired_seller_ads()
 
@@ -108,6 +126,7 @@ def add_seller_ad(user, text, post_type="text", file_id=None):
         "full_name": user.full_name,
         "post_type": post_type,
         "file_id": file_id,
+        "channel_message_id": None,
         "text": text,
         "created_at": now.isoformat(),
         "expires_at": (now + timedelta(days=AD_LIFETIME_DAYS)).isoformat()
@@ -124,22 +143,34 @@ def add_seller_ad(user, text, post_type="text", file_id=None):
     return ad
 
 
+def set_seller_ad_channel_message(ad_id, message_id):
+    ads = cleanup_expired_seller_ads()
+
+    for ad in ads:
+        if ad.get("id") == ad_id:
+            ad["channel_message_id"] = message_id
+            _save(ADS_FILE, ads)
+            return ad
+
+    return None
+
+
 def delete_seller_ad(ad_id, user_id=None):
     ads = cleanup_expired_seller_ads()
     new_ads = []
-    deleted = False
+    deleted_ad = None
 
     for ad in ads:
         is_target = ad.get("id") == ad_id
         is_owner = user_id is None or ad.get("user_id") == int(user_id)
 
         if is_target and is_owner:
-            deleted = True
+            deleted_ad = ad
             continue
 
         new_ads.append(ad)
 
-    if deleted:
+    if deleted_ad:
         _save(ADS_FILE, new_ads)
 
-    return deleted
+    return deleted_ad

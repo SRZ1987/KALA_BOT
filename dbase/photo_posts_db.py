@@ -91,7 +91,7 @@ def add_photo_post(user, post_type, file_id=None, text=None):
     posts.append(post)
     _save(DB_FILE, posts)
 
-    if post_type == "photo":
+    if post_type in ("photo", "video"):
         post_log = _load(POST_LOG_FILE, {})
         post_log[str(user.id)] = now.isoformat()
         _save(POST_LOG_FILE, post_log)

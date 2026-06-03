@@ -14,6 +14,7 @@ from dbase.seller_ads_db import (
     get_all_seller_ads,
     get_seconds_until_next_post,
     get_user_seller_ads,
+    set_seller_ad_channel_message,
 )
 from dbase.users_db import all_users
 from keyboards.seller_ads_kb import (
@@ -21,6 +22,11 @@ from keyboards.seller_ads_kb import (
     seller_ads_back_kb,
     seller_ads_menu_kb,
     seller_ads_my_kb,
+)
+from utils.channel import (
+    get_content_channel_id,
+    safe_delete_channel_message,
+    safe_unpin_channel_message,
 )
 from utils.fsm import SellerAdState
 
@@ -114,6 +120,37 @@ async def _broadcast_seller_ad(bot, ad):
             failed += 1
 
     return sent, failed
+
+
+async def _publish_seller_ad_to_channel(bot, ad):
+    channel_id = get_content_channel_id()
+
+    if not channel_id:
+        return None
+
+    text = "Объявление продавца\n\n" + _format_single_ad(ad)
+
+    if ad.get("post_type") == "photo" and ad.get("file_id"):
+        channel_message = await bot.send_photo(
+            channel_id,
+            ad["file_id"],
+            caption=text
+        )
+    else:
+        channel_message = await bot.send_message(channel_id, text)
+
+    try:
+        await bot.pin_chat_message(
+            channel_id,
+            channel_message.message_id,
+            disable_notification=True
+        )
+    except Exception:
+        pass
+
+    set_seller_ad_channel_message(ad["id"], channel_message.message_id)
+
+    return channel_message
 
 
 def _format_seconds(seconds):
@@ -237,8 +274,15 @@ async def seller_ads_save(message: Message, state: FSMContext):
     )
     await state.clear()
     sent, failed = await _broadcast_seller_ad(message.bot, ad)
+    channel_message = await _publish_seller_ad_to_channel(message.bot, ad)
+    channel_text = (
+        "В канал опубликовано и закреплено."
+        if channel_message
+        else "Канал не настроен, в канал не отправлено."
+    )
     await message.answer(
         f"Объявление #{ad['id']} опубликовано на 7 дней и отправлено в ленту.\n\n"
+        f"{channel_text}\n\n"
         f"Доставлено: <b>{sent}</b>\n"
         f"Не удалось отправить: <b>{failed}</b>",
         reply_markup=seller_ads_back_kb()
@@ -269,6 +313,15 @@ async def seller_ads_delete(callback: CallbackQuery):
         await callback.answer("Объявление не найдено.", show_alert=True)
         return
 
+    await safe_unpin_channel_message(
+        callback.message.bot,
+        deleted.get("channel_message_id")
+    )
+    await safe_delete_channel_message(
+        callback.message.bot,
+        deleted.get("channel_message_id")
+    )
+
     ads = get_user_seller_ads(callback.from_user.id)
 
     await callback.message.edit_text(
@@ -285,7 +338,16 @@ async def admin_seller_ad_delete(callback: CallbackQuery):
         return
 
     ad_id = callback.data.split(":")[1]
-    delete_seller_ad(ad_id)
+    deleted = delete_seller_ad(ad_id)
+    if deleted:
+        await safe_unpin_channel_message(
+            callback.message.bot,
+            deleted.get("channel_message_id")
+        )
+        await safe_delete_channel_message(
+            callback.message.bot,
+            deleted.get("channel_message_id")
+        )
     ads = get_all_seller_ads()
 
     await callback.message.edit_text(
