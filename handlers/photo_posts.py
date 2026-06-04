@@ -119,9 +119,10 @@ async def _publish_post_to_channel(bot, post):
 async def photo_posts_menu(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text(
-        "Фото дня\n\n"
-        "Каждый пользователь может добавить одно фото в сутки. "
-        "Админ может добавлять сообщения, фото и голосовые без ограничений.",
+        "<b>Фото дня</b>\n\n"
+        "Здесь можно посмотреть последние фото и видео из канала.\n\n"
+        "Чтобы добавить своё фото или видео, просто отправь его боту обычным сообщением. "
+        "Описание можно написать в подписи. Доступно 1 фото или видео в 24 часа.",
         reply_markup=photo_posts_menu_kb()
     )
     await callback.answer()

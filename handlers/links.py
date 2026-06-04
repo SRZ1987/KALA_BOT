@@ -14,7 +14,8 @@ router = Router()
 async def show_forecast(callback: CallbackQuery):
 
     await callback.message.edit_text(
-        "Ссылки которые могут пригодиться",
+        "<b>Полезные ссылки</b>\n\n"
+        "Собрал быстрые ссылки, которые могут пригодиться перед рыбалкой, поездкой или проверкой условий.",
         reply_markup=links_menu_kb()
     )
     await callback.answer()

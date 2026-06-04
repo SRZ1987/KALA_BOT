@@ -188,7 +188,9 @@ async def seller_ads_menu(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
     await callback.message.edit_text(
-        "Объявления продавцов",
+        "<b>Объявления продавцов</b>\n\n"
+        "Добавь текст или фото с подписью. Объявление уйдёт подписчикам в боте, "
+        "появится в канале, закрепится там и будет активно 7 дней.",
         reply_markup=seller_ads_menu_kb(
             _can_open_seller_ads(callback.from_user.id)
         )
