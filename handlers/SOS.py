@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from dbase.admin_db import is_test_mode_enabled
 from dbase.sos_db import add_sos_report
 from dbase.users_db import all_users
-from keyboards.SOS_kb import contact_geo_kb
+from keyboards.SOS_kb import contact_kb, geo_kb
 from keyboards.back_kb import back_kb, connection_back_kb
 from utils.channel import get_content_channel_id
 from utils.fsm import SOSState
@@ -80,8 +80,8 @@ async def get_problem(message: Message, state: FSMContext):
     await state.set_state(SOSState.location)
 
     await message.answer(
-        "Отправь геолокацию или нажми Назад.",
-        reply_markup=contact_geo_kb()
+        "Отправь геолокацию или нажми Пропустить геолокацию.",
+        reply_markup=geo_kb()
     )
 
 
@@ -90,6 +90,9 @@ async def get_location(message: Message, state: FSMContext):
     if message.location:
         lat = message.location.latitude
         lon = message.location.longitude
+    elif message.text == "Пропустить геолокацию":
+        lat = None
+        lon = None
     else:
         lat = None
         lon = None
@@ -98,8 +101,8 @@ async def get_location(message: Message, state: FSMContext):
     await state.set_state(SOSState.phone)
 
     await message.answer(
-        "Теперь отправь номер телефона или нажми Назад.",
-        reply_markup=contact_geo_kb()
+        "Теперь нажми Телефон или напиши номер вручную.",
+        reply_markup=contact_kb()
     )
 
 
