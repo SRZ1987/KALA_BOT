@@ -9,6 +9,7 @@ from dbase.sos_db import add_sos_report
 from dbase.users_db import all_users
 from keyboards.SOS_kb import contact_geo_kb
 from keyboards.back_kb import back_kb, connection_back_kb
+from utils.channel import get_content_channel_id
 from utils.fsm import SOSState
 
 
@@ -40,6 +41,27 @@ async def broadcast_sos(bot, text: str, users: list[int], lat=None, lon=None):
 
         except Exception:
             continue
+
+
+async def publish_sos_to_channel(bot, text: str, lat=None, lon=None):
+    channel_id = get_content_channel_id()
+
+    if not channel_id:
+        return False
+
+    try:
+        await bot.send_message(channel_id, text)
+
+        if lat is not None and lon is not None:
+            await bot.send_location(
+                chat_id=channel_id,
+                latitude=lat,
+                longitude=lon
+            )
+    except Exception:
+        return False
+
+    return True
 
 
 @router.callback_query(F.data == "sos_start")
@@ -105,12 +127,23 @@ async def get_phone(message: Message, state: FSMContext):
     )
 
     await state.clear()
+    channel_sent = await publish_sos_to_channel(
+        message.bot,
+        text,
+        lat=data.get("lat"),
+        lon=data.get("lon")
+    )
 
     await message.answer(
         (
-            "SOS сохранен. Тестовый режим включен, рассылка отключена."
+            "SOS сохранен. Тестовый режим включен, личная рассылка отключена."
             if is_test_mode_enabled()
             else "SOS отправлен!"
+        )
+        + (
+            "\nОпубликовано в канале."
+            if channel_sent
+            else "\nКанал не настроен, в канал не отправлено."
         ),
         reply_markup=ReplyKeyboardRemove()
     )
