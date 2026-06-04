@@ -6,7 +6,6 @@ CONNECTION_KB_BUTTONS = {
     "NB! SOS": "sos_start",
     "Попутчики": "rides",
     "Фото дня": "photo_posts",
-    "Объявления продавцов": "seller_ads",
 }
 
 

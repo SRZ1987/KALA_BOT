@@ -3,6 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from config import ADMIN_ID
+from dbase.admin_db import is_seller
 from keyboards.main_menu_kb import main_menu_kb
 
 
@@ -15,7 +16,8 @@ async def back_to_main_menu(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "Вы в главном меню",
         reply_markup=main_menu_kb(
-            callback.from_user.id == ADMIN_ID
+            is_admin=callback.from_user.id == ADMIN_ID,
+            is_seller=is_seller(callback.from_user.id)
         )
     )
     await callback.answer()
@@ -31,6 +33,7 @@ async def back_message(message: Message, state: FSMContext):
     await message.answer(
         "Главное меню",
         reply_markup=main_menu_kb(
-            message.from_user.id == ADMIN_ID
+            is_admin=message.from_user.id == ADMIN_ID,
+            is_seller=is_seller(message.from_user.id)
         )
     )

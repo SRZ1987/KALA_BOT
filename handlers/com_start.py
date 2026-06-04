@@ -3,6 +3,7 @@ from aiogram.types import Message
 from aiogram.filters import Command
 
 from keyboards.main_menu_kb import main_menu_kb
+from dbase.admin_db import is_seller
 from dbase.users_db import add_user
 from config import ADMIN_ID
 
@@ -24,6 +25,7 @@ async def cmd_start(message: Message):
         "Но он поможет при выборе ехать на шашлыки или на рыбалку,"
         "Также, здесь вы найдёте полезные ссылки, которые помогут вам немного сохранить времени",
         reply_markup=main_menu_kb(
-            message.from_user.id == ADMIN_ID
+            is_admin=message.from_user.id == ADMIN_ID,
+            is_seller=is_seller(message.from_user.id)
         )
     )

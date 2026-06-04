@@ -38,6 +38,10 @@ def _is_admin(user_id):
     return user_id == ADMIN_ID
 
 
+def _can_open_seller_ads(user_id):
+    return _is_admin(user_id) or is_seller(user_id)
+
+
 def _format_date(value):
     try:
         return datetime.fromisoformat(value).strftime("%d.%m.%Y")
@@ -177,12 +181,16 @@ def _format_seconds(seconds):
 
 @router.callback_query(F.data == "seller_ads")
 async def seller_ads_menu(callback: CallbackQuery, state: FSMContext):
+    if not _can_open_seller_ads(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
     await state.clear()
 
     await callback.message.edit_text(
         "Объявления продавцов",
         reply_markup=seller_ads_menu_kb(
-            is_seller(callback.from_user.id)
+            _can_open_seller_ads(callback.from_user.id)
         )
     )
     await callback.answer()
@@ -190,6 +198,10 @@ async def seller_ads_menu(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "seller_ads_view")
 async def seller_ads_view(callback: CallbackQuery):
+    if not _can_open_seller_ads(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
     ads = get_all_seller_ads()
 
     if any(ad.get("post_type") == "photo" and ad.get("file_id") for ad in ads):
@@ -221,7 +233,7 @@ async def seller_ads_view(callback: CallbackQuery):
 
 @router.callback_query(F.data == "seller_ads_add")
 async def seller_ads_add(callback: CallbackQuery, state: FSMContext):
-    if not is_seller(callback.from_user.id):
+    if not _can_open_seller_ads(callback.from_user.id):
         await callback.answer(
             "Только продавец может добавить объявление.",
             show_alert=True
@@ -252,7 +264,7 @@ async def seller_ads_add(callback: CallbackQuery, state: FSMContext):
 
 @router.message(SellerAdState.text)
 async def seller_ads_save(message: Message, state: FSMContext):
-    if not is_seller(message.from_user.id):
+    if not _can_open_seller_ads(message.from_user.id):
         await state.clear()
         await message.answer(
             "Только продавец может добавить объявление."
@@ -317,7 +329,7 @@ async def seller_ads_save(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "seller_ads_my")
 async def seller_ads_my(callback: CallbackQuery):
-    if not is_seller(callback.from_user.id):
+    if not _can_open_seller_ads(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
         return
 

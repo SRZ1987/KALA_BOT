@@ -10,7 +10,7 @@ def seller_ads_menu_kb(is_seller=False):
         kb.button(text="Добавить объявление", callback_data="seller_ads_add")
         kb.button(text="Мои объявления", callback_data="seller_ads_my")
 
-    kb.button(text="Назад", callback_data="connection")
+    kb.button(text="Назад в меню", callback_data="back_to_main_menu")
     kb.adjust(1)
 
     return kb.as_markup()

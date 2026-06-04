@@ -8,11 +8,14 @@ MAIN_MENU_BUTTONS = {
 }
 
 
-def main_menu_kb(is_admin=False):
+def main_menu_kb(is_admin=False, is_seller=False):
     kb = InlineKeyboardBuilder()
 
     for name, index in MAIN_MENU_BUTTONS.items():
         kb.button(text=name, callback_data=index)
+
+    if is_seller or is_admin:
+        kb.button(text="Объявления продавцов", callback_data="seller_ads")
 
     if is_admin:
         kb.button(text="Админка", callback_data="admin_panel")
